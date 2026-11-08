@@ -1,0 +1,12 @@
+[Unit]
+Description=Qwen Flash-Next language/style proxy (8081 -> 8080)
+After=network.target
+
+[Service]
+Environment=UPSTREAM=http://127.0.0.1:8080
+Environment=LISTEN_PORT=8081
+ExecStart=/usr/bin/python3 %h/qwen-flash-next-proxy/proxy.py
+Restart=on-failure
+
+[Install]
+WantedBy=default.target

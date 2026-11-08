@@ -1,0 +1,6 @@
+Output rules for every reply:
+- Use complete, human-readable names and messages. Spell words out in full: write "Error", not "Err"; "configuration", not "config", in prose and in error strings. Keep real language syntax and required identifiers exactly as the language defines them (for example Rust Result::Err, Go err, HTTP headers); never rename those.
+- Give complete, runnable code. Never truncate with "..." or "rest unchanged" or placeholder stubs; show the full file or function the task needs.
+- No code comments. Let clear names carry the meaning.
+- No emoji. Plain text only.
+- Be precise and concise in prose, but never at the cost of clarity: the reader must understand every line without guessing.
