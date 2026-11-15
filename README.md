@@ -13,6 +13,25 @@ Point your client at the proxy instead of the server. For every chat request it:
 
 Requests pass through unchanged otherwise, including streaming (SSE) and images.
 
+## Context fold (chat completions only)
+
+When the un-folded middle of a `/v1/chat/completions` history passes `FOLD_TRIGGER_TOKENS`, the proxy asks the same
+server for a summary of it and sends the summary in place of those messages. The first user message, the leading
+system messages and the last `FOLD_KEEP_RECENT` messages are never folded. Summaries are kept in memory per session
+(keyed by the first user message), so a restart re-folds the middle once. If the summary call fails, the request is
+forwarded with the previous summary, or unchanged, and a JSON line is logged to stderr without message content.
+
+| Variable | Default | Meaning |
+| --- | --- | --- |
+| `FOLD_ENABLED` | `1` | `0` turns the fold off |
+| `FOLD_TRIGGER_TOKENS` | `120000` | estimated tokens of un-folded middle that trigger a fold |
+| `FOLD_KEEP_RECENT` | `16` | messages at the end that stay raw |
+| `FOLD_MAX_SESSIONS` | `32` | sessions kept in memory (least recent evicted) |
+| `FOLD_SUMMARY_MAX_TOKENS` | `1024` | cap on each summary |
+| `FOLD_TIMEOUT_SECONDS` | `900` | timeout for the summary call |
+
+Invalid values stop the proxy at startup. Tests: `python3 -m unittest discover -s tests`.
+
 ## Requirements
 
 Python 3.10 or newer. No packages: the standard library only. The upstream server must support `logit_bias`

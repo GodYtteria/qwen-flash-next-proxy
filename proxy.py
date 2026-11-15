@@ -9,6 +9,8 @@ import socketserver
 import urllib.request
 from http.server import BaseHTTPRequestHandler
 
+import compress
+
 UPSTREAM = os.environ.get("UPSTREAM", "http://127.0.0.1:8080")
 LISTEN_HOST = os.environ.get("LISTEN_HOST", "127.0.0.1")
 LISTEN_PORT = int(os.environ.get("LISTEN_PORT", "8081"))
@@ -24,6 +26,21 @@ STYLE = ""
 if os.path.exists(STYLE_FILE):
     with open(STYLE_FILE, encoding="utf-8") as fh:
         STYLE = fh.read().strip()
+try:
+    FOLD_SETTINGS = compress.read_settings()
+except ValueError as error:
+    raise SystemExit(f"invalid context-fold setting: {error}")
+FOLD_STORE = compress.FoldStore(FOLD_SETTINGS.max_sessions)
+FOLD_PATH = "/v1/chat/completions"
+
+
+def complete_summary(body):
+    payload = dict(body, logit_bias=BAN)
+    request = urllib.request.Request(UPSTREAM + FOLD_PATH, data=json.dumps(payload).encode(),
+                                     headers={"Content-Type": "application/json"}, method="POST")
+    with urllib.request.urlopen(request, timeout=FOLD_SETTINGS.timeout_seconds) as response:
+        reply = json.loads(response.read())
+    return reply["choices"][0]["message"]["content"]
 
 
 def merge_bias(body):
@@ -88,6 +105,8 @@ class Handler(BaseHTTPRequestHandler):
             self.send_error(413, "body too large")
             return
         body = self.rfile.read(length) if length else b""
+        if method == "POST" and self.path == FOLD_PATH and body:
+            body = compress.fold_request_body(body, FOLD_SETTINGS, FOLD_STORE, complete_summary)
         if method == "POST" and self.path in BIAS_PATHS and body:
             patched = merge_bias(body)
             if patched is not None:
